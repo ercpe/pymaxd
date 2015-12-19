@@ -15,3 +15,8 @@ class TestConfig(object):
 		cfg.reload()
 
 		assert old_id != id(cfg.cfg_parser), "Configuration did not reload"
+
+	def test_basic_config(self):
+		cfg = Configuration('tests/fixtures/config/basic.cfg')
+		assert cfg.cfg_parser is not None
+
