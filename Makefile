@@ -1,15 +1,15 @@
 TARGET?=tests
 
 test_default_python:
-	PYTHONPATH=".:./src" python tests/ -v
+	PYTHONPATH=".:./src" python -m pytest tests/
 
 test_py2:
 	@echo Executing test with python2
-	PYTHONPATH=".:./src" python2 tests/ -v
+	PYTHONPATH=".:./src" python2 -m pytest tests/
 
 test_py3:
 	@echo Executing test with python3
-	PYTHONPATH=".:./src" python3 tests/ -v
+	PYTHONPATH=".:./src" python3 -m pytest tests/
 
 test: test_py2 test_py3
 
@@ -23,7 +23,7 @@ compile_optimized:
 
 coverage:
 	coverage erase
-	PYTHONPATH=".:./src" coverage run --source='src' --branch tests/__main__.py
+	PYTHONPATH=".:./src" coverage run --source='src' --branch -m py.test -qq tests/
 	coverage report -m
 
 travis: compile compile_optimized test_default_python coverage
