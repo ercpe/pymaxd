@@ -37,7 +37,7 @@ class Configuration(object):
 		return self.cfg_parser.get(section, option) if self.cfg_parser.has_option(section, option) else default
 
 	@property
-	def calendar(self):
+	def calendars(self):
 		if self._calendar is None:
 			self._calendar = []
 

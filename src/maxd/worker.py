@@ -12,5 +12,10 @@ class Worker(object):
 	def execute(self):
 		logger.info("Running...")
 
+		events = []
+		for calendar_config in self.config.calendars:
+			events.extend(self.fetch_events(calendar_config))
+
 	def fetch_events(self, calendar_config):
-		pass
+		return []
+
