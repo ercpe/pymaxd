@@ -30,10 +30,18 @@ class TestConfig(object):
 
 	def test_calendar_property(self):
 		cfg = Configuration('tests/fixtures/config/basic2.cfg')
-		assert len(cfg.calendar) == 1
-		cal = cfg.calendar[0]
-		assert cal.name == 'testcal1'
-		assert cal.url == 'http://localhost/test.ics'
+		assert len(cfg.calendar) == 2
+
+		assert cfg.calendar[0].name == 'testcal1'
+		assert cfg.calendar[0].url == 'http://localhost/test.ics'
+		assert not cfg.calendar[0].auth
+		assert cfg.calendar[0].username == cfg.calendar[0].password == None
+
+		assert cfg.calendar[1].name == 'testcal2'
+		assert cfg.calendar[1].url == 'http://localhost/test.ics'
+		assert cfg.calendar[1].auth
+		assert cfg.calendar[1].username == 'foo'
+		assert cfg.calendar[1].password == 'bar'
 
 	def test_basic_config(self):
 		cfg = Configuration('tests/fixtures/config/basic.cfg')

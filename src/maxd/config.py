@@ -9,7 +9,16 @@ except ImportError: # pragma: no cover
 
 logger = logging.getLogger(__name__)
 
-CalendarConfig = collections.namedtuple('CalendarConfig', ('name', 'url'))
+class CalendarConfig(collections.namedtuple('CalendarConfig', ('name', 'url', 'username', 'password'))):
+
+	def __new__(cls, **kwargs):
+		kwargs.setdefault('username', None)
+		kwargs.setdefault('password', None)
+		return super(CalendarConfig, cls).__new__(cls, **kwargs)
+
+	@property
+	def auth(self):
+		return bool(self.username and self.password)
 
 class Configuration(object):
 
@@ -39,6 +48,9 @@ class Configuration(object):
 					logger.warning("Ignoring calendar '%s' (missing url)" % section_name)
 					continue
 
-				self._calendar.append(CalendarConfig(section_name, url))
+				calconf = CalendarConfig(name=section_name, url=url,
+										 username=self.get_option(section_name, 'username'),
+										 password=self.get_option(section_name, 'password'))
+				self._calendar.append(calconf)
 
 		return self._calendar
