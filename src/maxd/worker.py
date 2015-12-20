@@ -71,11 +71,23 @@ class Worker(object):
 			except:
 				logger.exception("Failed to read events from %s" % calendar_config.name)
 
+		logger.info("Creating schedule for %s events" % len(events))
+		schedule = self.create_schedule(events)
+
 	def fetch_events(self, calendar_config):
 		chunks = urlsplit(calendar_config.url)
+
 		if chunks.scheme and chunks.netloc:
-			return HTTPCalendarEventFetcher().fetch(calendar_config)
+			fetcher = HTTPCalendarEventFetcher()
 		else:
-			return LocalCalendarEventFetcher().fetch(calendar_config)
+			fetcher = LocalCalendarEventFetcher()
 
+		events = fetcher.fetch(calendar_config)
+		logger.info("Applying filter to %s fetched events" % len(events))
+		return self.apply_filter(calendar_config, events)
 
+	def apply_filter(self, calendar_config, events):
+		return events
+
+	def create_schedule(self, events):
+		return []

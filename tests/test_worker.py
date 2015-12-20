@@ -3,7 +3,7 @@ import datetime
 
 import pytz
 from maxd.config import Configuration, CalendarConfig
-from maxd.worker import Worker, LocalCalendarEventFetcher, _to_utc_datetime
+from maxd.worker import Worker, LocalCalendarEventFetcher, _to_utc_datetime, Event
 
 
 class TestWorker(object):
@@ -17,6 +17,15 @@ class TestWorker(object):
 	# 	w = Worker(Configuration('test/fixtures/config/local_calendar.cfg'))
 	# 	w.execute()
 	# 	assert False
+
+	def test_apply_filters_no_filters(self):
+		cc = CalendarConfig(name='test', url='tests/fixtures/calendars/single_event.ics')
+
+		n = datetime.datetime.now(tz=pytz.UTC)
+		events = [Event(name='test', start=n, end=n)]
+		w = Worker(None)
+		filtered_events = w.apply_filter(cc, events)
+		assert filtered_events == events
 
 
 class TestFetcher(object):
