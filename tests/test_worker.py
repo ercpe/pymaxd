@@ -44,4 +44,4 @@ class TestFetcherUtils(object):
 
 	def test_dt_conversion_different_timezones(self):
 		dt = datetime.datetime(2015, 12, 20, 10, 0, 0, tzinfo=pytz.timezone('Europe/Berlin'))
-		assert _to_utc_datetime(dt) == datetime.datetime(2015, 12, 20, 9, 0, 0, tzinfo=pytz.UTC)
+		assert _to_utc_datetime(dt).timetuple() == dt.utctimetuple()

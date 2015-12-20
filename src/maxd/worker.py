@@ -20,7 +20,7 @@ def _to_utc_datetime(dt):
 
 	if dt.tzinfo == pytz.UTC:
 		return dt
-	return datetime.datetime.fromtimestamp(time.mktime(dt.timetuple()), tz=pytz.UTC)
+	return dt.astimezone(pytz.UTC)
 
 
 class Event(collections.namedtuple('Event', ('name', 'start', 'end'))):
