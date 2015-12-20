@@ -1,17 +1,16 @@
 # -*- coding: utf-8 -*-
-import threading
+import logging
 
-import time
+logger = logging.getLogger(__name__)
 
+class Worker(object):
 
-class Worker(threading.Thread):
-
-	def __init__(self, config, *args, **kwargs):
-		super(Worker, self).__init__(*args, **kwargs)
+	def __init__(self, config):
 		self.config = config
-
-	def run(self):  # pragma: nocover
-		self.execute()
+		self.exception = None
 
 	def execute(self):
+		logger.info("Running...")
+
+	def fetch_events(self, calendar_config):
 		pass
