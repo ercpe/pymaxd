@@ -13,11 +13,6 @@ class TestWorker(object):
 		w = Worker(config)
 		w.execute()
 
-	# def test_parse_local_calendar(self):
-	# 	w = Worker(Configuration('test/fixtures/config/local_calendar.cfg'))
-	# 	w.execute()
-	# 	assert False
-
 	def test_apply_filters_no_filters(self):
 		cc = CalendarConfig(name='test', url='tests/fixtures/calendars/single_event.ics')
 
