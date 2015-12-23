@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
+import datetime
 import pytest
 
-from maxd.config import Configuration
+from maxd.config import Configuration, timediff
+
 
 class TestConfig(object):
 
@@ -46,3 +48,18 @@ class TestConfig(object):
 	def test_basic_config(self):
 		cfg = Configuration('tests/fixtures/config/basic.cfg')
 		assert cfg.cfg_parser is not None
+
+	def test_timediff_decorator(self):
+		for s, td in [
+			(10, datetime.timedelta(minutes=10)),
+			(360, datetime.timedelta(minutes=360)),
+			("20", datetime.timedelta(minutes=20)),
+			("02:30", datetime.timedelta(hours=2, minutes=30)),
+			("2:3", datetime.timedelta(hours=2, minutes=3)),
+			(datetime.timedelta(minutes=1), datetime.timedelta(minutes=1))
+		]:
+			assert timediff(lambda: s)() == td, "'%s' does not parse into %s" % (s, td)
+
+	def test_timediff_decorator_unparsable(self):
+		with pytest.raises(ValueError):
+			assert timediff(lambda: "lalala")()

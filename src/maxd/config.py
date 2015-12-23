@@ -2,12 +2,34 @@
 import collections
 import logging
 
+import datetime
+import re
+
 try:
 	from ConfigParser import ConfigParser
 except ImportError: # pragma: no cover
 	from configparser import ConfigParser
 
 logger = logging.getLogger(__name__)
+
+def timediff(func):
+	def _wrapper():
+		result = func()
+
+		if isinstance(result, datetime.timedelta):
+			return result
+
+		if isinstance(result, int) or (isinstance(result, str) and result.isdigit()):
+			return datetime.timedelta(minutes=int(result))
+
+		m = re.match("(\d{1,2})\:(\d{1,2})", result)
+		if m:
+			hours, minutes = m.groups()
+			return datetime.timedelta(hours=int(hours), minutes=int(minutes))
+
+		raise ValueError("Unparsable time diff: %s" % result)
+
+	return _wrapper
 
 class CalendarConfig(collections.namedtuple('CalendarConfig', ('name', 'url', 'username', 'password'))):
 
@@ -19,6 +41,7 @@ class CalendarConfig(collections.namedtuple('CalendarConfig', ('name', 'url', 'u
 	@property
 	def auth(self):
 		return bool(self.username and self.password)
+
 
 class Configuration(object):
 
@@ -35,6 +58,9 @@ class Configuration(object):
 
 	def get_option(self, section, option, default=None):
 		return self.cfg_parser.get(section, option) if self.cfg_parser.has_option(section, option) else default
+
+	def get_int(self, section, option, default=None):
+		return self.cfg_parser.getint(section, option) if self.cfg_parser.has_option(section, option) else default
 
 	@property
 	def calendars(self):
@@ -54,3 +80,8 @@ class Configuration(object):
 				self._calendar.append(calconf)
 
 		return self._calendar
+
+	@timediff
+	@property
+	def warmup_duration(self):
+		return self.get_int('GENERAL', 'warmup', 30)
