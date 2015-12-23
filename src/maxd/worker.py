@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import logging
 import collections
-import time
 import datetime
+from dateutil import rrule
 
 import pytz
 from icalendar import Calendar
@@ -64,17 +64,22 @@ class Worker(object):
 	def execute(self):
 		logger.info("Running...")
 
+		start = datetime.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+		end = start + datetime.timedelta(days=7)
+
+		logger.info("Start: %s, end: %s" % (start, end))
+
 		events = []
 		for calendar_config in self.config.calendars:
 			try:
-				events.extend(self.fetch_events(calendar_config))
+				events.extend(self.fetch_events(calendar_config, start, end))
 			except:
 				logger.exception("Failed to read events from %s" % calendar_config.name)
 
 		logger.info("Creating schedule for %s events" % len(events))
 		schedule = self.create_schedule(events)
 
-	def fetch_events(self, calendar_config):
+	def fetch_events(self, calendar_config, start, end):
 		chunks = urlsplit(calendar_config.url)
 
 		if chunks.scheme and chunks.netloc:
@@ -83,10 +88,37 @@ class Worker(object):
 			fetcher = LocalCalendarEventFetcher()
 
 		events = fetcher.fetch(calendar_config)
-		logger.info("Applying filter to %s fetched events" % len(events))
-		return self.apply_filter(calendar_config, events)
 
-	def apply_filter(self, calendar_config, events):
+		logger.info("Applying range filter to %s fetched events" % len(events))
+		events = self.apply_range_filter(events, start, end)
+
+		logger.info("Applying user filter to %s events" % len(events))
+		return self.apply_user_filter(calendar_config, events)
+
+	def apply_range_filter(self, events, start, end):
+
+		def _expand(events, start, end):
+			start = start.replace(tzinfo=None)
+			end = end.replace(tzinfo=None)
+
+			for event in events:
+				if 'RRULE' not in event:
+					yield event, event['DTSTART'].dt.astimezone(pytz.UTC)
+					continue
+
+				rule = rrule.rrulestr(event.get('RRULE').to_ical())
+				if rule._until:
+					# The until field in the RRULE may contain a timezone (even if it's UTC).
+					# Make sure its UTC and remove it
+					rule._until = rule._until.astimezone(pytz.UTC).replace(tzinfo=None)
+
+				for dt in rule.between(start, end):
+					yield event, dt
+
+		filtered_events = filter(lambda item: start <= item[1] <= end, _expand(events, start, end))
+		return [ev for ev, _ in filtered_events]
+
+	def apply_user_filter(self, calendar_config, events):
 		return events
 
 	def create_schedule(self, events):

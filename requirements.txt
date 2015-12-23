@@ -1,3 +1,4 @@
 # Project dependencies
 icalendar
 pytz
+python-dateutil
