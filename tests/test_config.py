@@ -49,6 +49,22 @@ class TestConfig(object):
 		cfg = Configuration('tests/fixtures/config/basic.cfg')
 		assert cfg.cfg_parser is not None
 
+	def test_get_option(self):
+		cfg = Configuration('tests/fixtures/config/basic2.cfg')
+		assert cfg.get_option('GENERAL', 'calendars') == 'testcal1, testcal2'
+
+	def test_get_option_default(self):
+		cfg = Configuration('tests/fixtures/config/basic2.cfg')
+		assert cfg.get_option('GENERAL', 'foo') is None
+		assert cfg.get_option('GENERAL', 'foo', 'bar') == 'bar'
+		assert cfg.get_option('does not exist', 'foo') is None
+		assert cfg.get_option('does not exist', 'foo', 'bar') == 'bar'
+
+	def test_get_option_default(self):
+		cfg = Configuration('tests/fixtures/config/basic2.cfg')
+		assert cfg.get_int('GENERAL', 'foo', 'bar') == 'bar'
+		assert cfg.get_int('does not exist', 'foo', 'bar') == 'bar'
+
 	def test_timediff_decorator(self):
 		for s, td in [
 			(10, datetime.timedelta(minutes=10)),
