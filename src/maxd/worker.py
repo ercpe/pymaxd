@@ -47,8 +47,9 @@ class LocalCalendarEventFetcher(EventFetcher):
 				if item.name != "VEVENT":
 					continue
 
-				name = item.get('SUMMARY')
-				yield Event(name=name, start=item.get('DTSTART').dt, end=item.get('DTEND').dt)
+				yield item
+				#name = item.get('SUMMARY')
+				#yield Event(name=name, start=item.get('DTSTART').dt, end=item.get('DTEND').dt)
 
 
 class HTTPCalendarEventFetcher(EventFetcher):
@@ -64,8 +65,8 @@ class Worker(object):
 	def execute(self):
 		logger.info("Running...")
 
-		start = datetime.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-		end = start + datetime.timedelta(days=7)
+		start = datetime.datetime.now(tz=pytz.UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+		end = start + datetime.timedelta(days=7) - datetime.timedelta(seconds=1)
 
 		logger.info("Start: %s, end: %s" % (start, end))
 
@@ -87,39 +88,65 @@ class Worker(object):
 		else:
 			fetcher = LocalCalendarEventFetcher()
 
+		# fetch all ical event for this calendar
 		events = fetcher.fetch(calendar_config)
 
-		logger.info("Applying range filter to %s fetched events" % len(events))
+		# filter the fetched events for the current period and convert them to Event instances
+		logger.info("Applying range filter to fetched events")
 		events = self.apply_range_filter(events, start, end)
 
-		logger.info("Applying user filter to %s events" % len(events))
+		logger.info("Applying user filter to events")
 		return self.apply_user_filter(calendar_config, events)
 
 	def apply_range_filter(self, events, start, end):
 
 		def _expand(events, start, end):
-			start = start.replace(tzinfo=None)
-			end = end.replace(tzinfo=None)
+			start = start.astimezone(pytz.UTC).replace(tzinfo=None) if start.tzinfo else start
+			end = end.astimezone(pytz.UTC).replace(tzinfo=None) if end.tzinfo else end
 
 			for event in events:
-				if 'RRULE' not in event:
+				if 'RRULE' in event:
+					event_start_utc = event['DTSTART'].dt.astimezone(pytz.UTC).replace(tzinfo=None)
+					rule = rrule.rrulestr(event.get('RRULE').to_ical().decode('utf-8'), dtstart=event_start_utc)
+					if rule._until:
+						# The until field in the RRULE may contain a timezone (even if it's UTC).
+						# Make sure its UTC and remove the tzinfo
+						rule._until = rule._until.astimezone(pytz.UTC).replace(tzinfo=None)
+
+					for dt in rule.between(start, end, inc=True):
+						yield event, dt.replace(tzinfo=pytz.UTC)
+				else:
 					yield event, event['DTSTART'].dt.astimezone(pytz.UTC)
-					continue
-
-				rule = rrule.rrulestr(event.get('RRULE').to_ical())
-				if rule._until:
-					# The until field in the RRULE may contain a timezone (even if it's UTC).
-					# Make sure its UTC and remove it
-					rule._until = rule._until.astimezone(pytz.UTC).replace(tzinfo=None)
-
-				for dt in rule.between(start, end):
-					yield event, dt
 
 		filtered_events = filter(lambda item: start <= item[1] <= end, _expand(events, start, end))
-		return [ev for ev, _ in filtered_events]
+
+		for ev, event_start in filtered_events:
+			event_end = event_start + (ev['DTEND'].dt - ev['DTSTART'].dt)
+			yield Event(name=str(ev['SUMMARY']), start=event_start, end=event_end)
 
 	def apply_user_filter(self, calendar_config, events):
 		return events
 
 	def create_schedule(self, events):
-		return []
+		schedule = {}
+
+		warmup = self.config.warmup_duration
+
+		for event in events:
+			logger.info(event)
+
+			start = event.start - warmup
+
+			# restrict end of period to the end of the day
+			end_of_day = (event.start + datetime.timedelta(hours=23, minutes=59, seconds=59)).replace(hour=0, minute=0, second=0) - datetime.timedelta(seconds=1)
+			end = min(event.end, end_of_day)
+			logger.debug(" Begin warmup: %s, end warm: %s" % (start, end))
+
+			schedule[start.weekday()] = schedule.get(start.weekday(), []) + [(start, end)]
+
+		for wd in sorted(schedule.keys()):
+			logger.debug("Weekday %s:" % wd)
+			for start, end in sorted(schedule[wd]):
+				logger.debug("  %s -> %s" % (start, end))
+
+		return schedule
