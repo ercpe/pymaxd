@@ -31,6 +31,20 @@ def timediff(func):
 
 	return _wrapper
 
+def max_value(max):
+	def _inner(func):
+		def _wrapper(*args):
+			value = func(*args)
+
+			if value > max:
+				logger.info("Limiting value of %s to max %s" % (value, max))
+				return max
+
+			return value
+		return _wrapper
+	return _inner
+
+
 class CalendarConfig(collections.namedtuple('CalendarConfig', ('name', 'url', 'username', 'password'))):
 
 	def __new__(cls, **kwargs):
@@ -82,6 +96,7 @@ class Configuration(object):
 		return self._calendar
 
 	@property
+	@max_value(datetime.timedelta(minutes=180))
 	@timediff
 	def warmup_duration(self):
 		return self.get_int('GENERAL', 'warmup', 30)

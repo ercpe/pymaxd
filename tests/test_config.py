@@ -2,7 +2,7 @@
 import datetime
 import pytest
 
-from maxd.config import Configuration, timediff
+from maxd.config import Configuration, timediff, max_value
 
 
 class TestConfig(object):
@@ -83,3 +83,15 @@ class TestConfig(object):
 	def test_warmup_duration(self):
 		cfg = Configuration('tests/fixtures/config/basic2.cfg')
 		assert cfg.warmup_duration == datetime.timedelta(minutes=30) # default value
+
+	def test_max_value_decorator(self):
+		@max_value(20)
+		def test():
+			return 10
+		assert test() == 10
+
+	def test_max_value_decorator_limit_to_max(self):
+		@max_value(10)
+		def test():
+			return 20
+		assert test() == 10
