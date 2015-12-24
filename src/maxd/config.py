@@ -72,6 +72,17 @@ def min_value(min, allow_none=True):
 	return _inner
 
 
+def time_range(s):
+	if (s or "").strip():
+		periods = [x.strip() for x in s.split(',')]
+
+		for p in periods:
+			m = re.match(r"(\d{1,2}):(\d{1,2})\s*-\s*(\d{1,2}):(\d{1,2})", s)
+			if not m:
+				raise ValueError("'%s' does not match 'hh:mm - hh:mm'")
+			yield (m.group(0), m.group(1)), (m.group(2), m.group(3)),
+
+
 class CalendarConfig(collections.namedtuple('CalendarConfig', ('name', 'url', 'username', 'password'))):
 
 	def __new__(cls, **kwargs):
@@ -90,6 +101,7 @@ class Configuration(object):
 		self.path = config_path
 		self.cfg_parser = None
 		self._calendar = None
+		self._static = None
 		self.reload()
 
 	def reload(self):
@@ -139,3 +151,37 @@ class Configuration(object):
 	@min_value(5)
 	def low_temperature(self):
 		return self.get_int('GENERAL', 'low_temperature', None)
+
+	@property
+	def cube_serial(self):
+		return self.get_option('cube', 'serial')
+
+	@property
+	def cube_address(self):
+		return self.get_option('cube', 'address')
+
+	@property
+	def cube_port(self):
+		return self.get_int('cube', 'port', None)
+
+	@property
+	def static_schedule(self):
+		if self._static is None:
+			d = {}
+
+			for weekday, name in (
+				(0, 'monday'),
+				(1, 'tuesday'),
+				(2, 'wednesday'),
+				(3, 'thursday'),
+				(4, 'friday'),
+				(5, 'saturday'),
+				(6, 'sunday'),
+			):
+				s = self.get_option('static', name)
+				d[weekday] = [
+					(datetime.time(a, b), datetime.time(c, d)) for a, b, c, d in time_range(s)
+				]
+			self._static = d
+
+		return self._static

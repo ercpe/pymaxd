@@ -7,6 +7,8 @@ from dateutil import rrule
 import pytz
 from icalendar import Calendar
 
+from pymax.cube import Discovery, Cube
+
 try:
 	from urlparse import urlsplit
 except ImportError: # pragma: nocover
@@ -54,6 +56,22 @@ class HTTPCalendarEventFetcher(EventFetcher):
 	pass
 
 
+class Schedule(object):
+
+	def __init__(self, weekday_events={}):
+		self.events = weekday_events
+
+	def __add__(self, other):
+		for k, v in other.items():
+			self.events[k] = self.events.get(k, []) + v
+
+	def items(self):
+		return self.events.items()
+
+	def __eq__(self, other):
+		return isinstance(other, Schedule) and self.events == other.events
+
+
 class Worker(object):
 
 	def __init__(self, config):
@@ -76,7 +94,23 @@ class Worker(object):
 				logger.exception("Failed to read events from %s" % calendar_config.name)
 
 		logger.info("Creating schedule for %s events" % len(events))
-		schedule = self.create_schedule(events)
+		static_schedule = self.get_static_schedule(start, end)
+		calendar_schedule = self.create_schedule(events)
+		self.apply_schedule(static_schedule + calendar_schedule)
+
+	def get_static_schedule(self, start, end):
+		d = {}
+
+		for day in range(0, 6):
+			dt = start.astimezone(pytz.UTC).replace(hour=0, minute=0, second=0, microsecond=0) + \
+						datetime.timedelta(days=0)
+			weekday = dt.weekday()
+			d[weekday] = [
+				(dt.replace(hour=start.hour, minute=start.minute), dt.replace(hour=end.hour, minute=end.minute))
+				for start, end in self.config.static_schedule.get(weekday, [])
+			]
+
+		return Schedule(d)
 
 	def fetch_events(self, calendar_config, start, end):
 		chunks = urlsplit(calendar_config.url)
@@ -147,4 +181,41 @@ class Worker(object):
 			for start, end in sorted(schedule[wd]):
 				logger.debug("  %s -> %s" % (start, end))
 
-		return schedule
+		return Schedule(schedule)
+
+	def apply_schedule(self, schedule):
+		pass
+		# with self.connect_to_cube() as cube:
+		# 	pass
+
+	def connect_to_cube(self):
+		cube_addr = None
+		cube_port = self.config.cube_port
+
+		if self.config.cube_address:
+			cube_addr = self.config.cube_address
+
+		if not cube_addr:
+			logger.info("Using discovery to find cube")
+			d = Discovery()
+
+			cube_serial = self.config.cube_serial
+			if not cube_serial:
+				logger.info("Making IDENTIFY discovery to find available cubes")
+				response = Discovery().discover()
+				logger.info("Got IDENTIFY response: %s" % response)
+				if response:
+					cube_serial = response.serial
+				else:
+					raise Exception("No cube found with IDENTIFY discovery")
+
+			# use network configuration discovery
+			logger.info("Using NETWORK CONFIG discovery for cube %s" % cube_serial)
+			discovery_response = d.discover(cube_serial=cube_serial, discovery_type=Discovery.DISCOVERY_TYPE_NETWORK_CONFIG)
+			if discovery_response:
+				cube_addr = discovery_response.ip_address
+			else:
+				raise Exception("Cube %s did not answer with network configuration" % cube_serial)
+
+		logger.info("Cube at %s, port %s" % (cube_addr, cube_port))
+		return Cube(address=cube_addr, port=cube_port)

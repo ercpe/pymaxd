@@ -4,7 +4,7 @@ import pytest
 import icalendar
 import pytz
 from maxd.config import Configuration, CalendarConfig
-from maxd.worker import Worker, LocalCalendarEventFetcher, _to_utc_datetime, Event
+from maxd.worker import Worker, LocalCalendarEventFetcher, _to_utc_datetime, Event, Schedule
 
 
 class TestWorker(object):
@@ -65,9 +65,9 @@ class TestWorker(object):
 
 		schedule = w.create_schedule(vevents)
 
-		for wd in sorted(schedule.keys()):
+		for wd, periods in sorted(schedule.items()):
 			print("Weekday %s:" % wd)
-			for start, end in sorted(schedule[wd]):
+			for start, end in sorted(periods):
 				print("  %s -> %s" % (start, end))
 
 		d = {
@@ -102,7 +102,7 @@ class TestWorker(object):
 			]
 		}
 
-		assert schedule == d
+		assert schedule == Schedule(d)
 
 
 class TestFetcher(object):
