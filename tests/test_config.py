@@ -2,7 +2,7 @@
 import datetime
 import pytest
 
-from maxd.config import Configuration, timediff, max_value
+from maxd.config import Configuration, timediff, max_value, min_value
 
 
 class TestConfig(object):
@@ -95,3 +95,34 @@ class TestConfig(object):
 		def test():
 			return 20
 		assert test() == 10
+
+	def test_min_value_decorator(self):
+		@min_value(5)
+		def test():
+			return 10
+		assert test() == 10
+
+	def test_min_value_decorator_limit_to_min(self):
+		@min_value(10)
+		def test():
+			return 5
+		assert test() == 10
+
+	def test_min_value_decorator_none(self):
+		@min_value(5)
+		def test():
+			return None
+		assert test() is None
+
+		@min_value(5, allow_none=False)
+		def test2():
+			return None
+		assert test2() == 5
+
+	def test_get_high_temperature_not_set(self):
+		cfg = Configuration('/dev/null')
+		assert cfg.high_temperature is None
+
+	def test_get_low_temperature_not_set(self):
+		cfg = Configuration('/dev/null')
+		assert cfg.low_temperature is None

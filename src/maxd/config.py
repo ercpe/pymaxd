@@ -31,14 +31,41 @@ def timediff(func):
 
 	return _wrapper
 
-def max_value(max):
+def max_value(max, allow_none=True):
 	def _inner(func):
 		def _wrapper(*args):
 			value = func(*args)
 
+			if value is None:
+				if allow_none:
+					return value
+				else:
+					logger.info("Limiting value of %s to max %s" % (value, max))
+					return max
+
 			if value > max:
 				logger.info("Limiting value of %s to max %s" % (value, max))
 				return max
+
+			return value
+		return _wrapper
+	return _inner
+
+def min_value(min, allow_none=True):
+	def _inner(func):
+		def _wrapper(*args):
+			value = func(*args)
+
+			if value is None:
+				if allow_none:
+					return value
+				else:
+					logger.info("Limiting value of %s to min %s" % (value, min))
+					return min
+
+			if value < min:
+				logger.info("Limiting value of %s to min %s" % (value, min))
+				return min
 
 			return value
 		return _wrapper
@@ -100,3 +127,15 @@ class Configuration(object):
 	@timediff
 	def warmup_duration(self):
 		return self.get_int('GENERAL', 'warmup', 30)
+
+	@property
+	@max_value(30)
+	@min_value(5)
+	def high_temperature(self):
+		return self.get_int('GENERAL', 'high_temperature', None)
+
+	@property
+	@max_value(30)
+	@min_value(5)
+	def low_temperature(self):
+		return self.get_int('GENERAL', 'low_temperature', None)
