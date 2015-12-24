@@ -48,8 +48,6 @@ class LocalCalendarEventFetcher(EventFetcher):
 					continue
 
 				yield item
-				#name = item.get('SUMMARY')
-				#yield Event(name=name, start=item.get('DTSTART').dt, end=item.get('DTEND').dt)
 
 
 class HTTPCalendarEventFetcher(EventFetcher):
