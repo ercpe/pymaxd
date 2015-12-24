@@ -79,3 +79,7 @@ class TestConfig(object):
 	def test_timediff_decorator_unparsable(self):
 		with pytest.raises(ValueError):
 			assert timediff(lambda: "lalala")()
+
+	def test_warmup_duration(self):
+		cfg = Configuration('tests/fixtures/config/basic2.cfg')
+		assert cfg.warmup_duration == datetime.timedelta(minutes=30) # default value

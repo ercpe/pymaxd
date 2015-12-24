@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 import collections
 import logging
-
 import datetime
 import re
+from functools import wraps
 
 try:
 	from ConfigParser import ConfigParser
@@ -13,8 +13,8 @@ except ImportError: # pragma: no cover
 logger = logging.getLogger(__name__)
 
 def timediff(func):
-	def _wrapper():
-		result = func()
+	def _wrapper(*args):
+		result = func(*args)
 
 		if isinstance(result, datetime.timedelta):
 			return result
@@ -81,7 +81,7 @@ class Configuration(object):
 
 		return self._calendar
 
-	@timediff
 	@property
+	@timediff
 	def warmup_duration(self):
 		return self.get_int('GENERAL', 'warmup', 30)
