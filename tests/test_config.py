@@ -123,6 +123,16 @@ class TestConfig(object):
 		cfg = Configuration('/dev/null')
 		assert cfg.high_temperature is None
 
-	def test_get_low_temperature_not_set(self):
-		cfg = Configuration('/dev/null')
-		assert cfg.low_temperature is None
+	def test_get_high_temperature_limited(self):
+		cfg1 = Configuration('tests/fixtures/config/temperatures_high.cfg')
+		assert cfg1.high_temperature is 30
+
+		cfg2 = Configuration('tests/fixtures/config/temperatures_low.cfg')
+		assert cfg2.high_temperature == 5
+
+	def test_get_low_temperature_limited(self):
+		cfg1 = Configuration('tests/fixtures/config/temperatures_high.cfg')
+		assert cfg1.low_temperature is 30
+
+		cfg2 = Configuration('tests/fixtures/config/temperatures_low.cfg')
+		assert cfg2.low_temperature == 5
