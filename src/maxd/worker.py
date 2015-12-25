@@ -120,6 +120,12 @@ class Schedule(object):
 
 		return Schedule(new)
 
+	def as_timezone(self, tz):
+		for wd, periods in self.events.items():
+			self.events[wd] = [
+				(start.astimezone(tz), end.astimezone(tz)) for start, end in periods
+			]
+
 	def __eq__(self, other):
 		return isinstance(other, Schedule) and self.events == other.events
 

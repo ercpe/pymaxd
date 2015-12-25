@@ -298,3 +298,20 @@ class TestSchedule(object):
 				(_t(13, 0), _t(18, 0)),
 			]
 		}
+
+	def test_as_timezone(self):
+		def _t(h, m):
+			return datetime.datetime(2015, 12, 21, h, m, tzinfo=pytz.UTC)
+
+		schedule = Schedule({
+			0: [
+				(_t(6, 0), _t(9, 0)),
+			]
+		}).effective()
+
+		schedule.as_timezone(pytz.timezone('Europe/Berlin'))
+		assert schedule.events == {
+			0: [
+				(_t(6, 0), _t(9, 0)), # still the same as in UTC
+			]
+		}
