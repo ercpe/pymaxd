@@ -2,3 +2,4 @@
 icalendar
 pytz
 python-dateutil
+pymax
