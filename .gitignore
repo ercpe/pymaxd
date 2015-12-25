@@ -60,4 +60,5 @@ target/
 # PyCharm
 .idea
 
+src/test.cfg
 src/test.py*
