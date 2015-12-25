@@ -181,3 +181,101 @@ class TestSchedule(object):
 
 		with pytest.raises(ValueError):
 			Schedule() + 'lalala'
+
+	def test_get_effective_contained(self):
+		def _t(h, m):
+			return datetime.datetime(2015, 12, 21, h, m, tzinfo=pytz.UTC)
+
+		# periods which are contained in a larger period must be removed
+		assert Schedule({
+			0: [
+				(_t(5, 0), _t(10, 0)),
+				(_t(7, 0), _t(8, 0))
+			]
+		}).effective() == {
+			0: [
+				(_t(5, 0), _t(10, 0)),
+			]
+		}
+
+		# same as above, but items revers
+		assert Schedule({
+			0: [
+				(_t(7, 0), _t(8, 0)),
+				(_t(5, 0), _t(10, 0)),
+			]
+		}).effective() == {
+			0: [
+				(_t(5, 0), _t(10, 0)),
+			]
+		}
+
+	def test_get_effective_extend(self):
+		def _t(h, m):
+			return datetime.datetime(2015, 12, 21, h, m, tzinfo=pytz.UTC)
+
+		# extend periods:
+		# 0600  0700
+		#   30        0900
+		# -> 06:00 - 09:00
+		assert Schedule({
+			0: [
+				(_t(6, 0), _t(7, 0)),
+				(_t(6, 30), _t(9, 0)),
+			]
+		}).effective() == {
+			0: [
+				(_t(6, 0), _t(9, 0)),
+			]
+		}
+
+		# extend periods:
+		# 0600  0700
+		#   30        0900
+		#                             1500 1700
+		# -> 06:00 - 09:00
+		# -> 15:00 - 17:00
+		assert Schedule({
+			0: [
+				(_t(6, 0), _t(7, 0)),
+				(_t(15, 0), _t(17, 0)),
+				(_t(6, 30), _t(9, 0)),
+			]
+		}).effective() == {
+			0: [
+				(_t(6, 0), _t(9, 0)),
+				(_t(15, 0), _t(17, 0)),
+			]
+		}
+
+	def test_get_effective_overlapped_and_contained(self):
+		def _t(h, m):
+			return datetime.datetime(2015, 12, 21, h, m, tzinfo=pytz.UTC)
+
+		# a larger schedule supersedes the smaller ones which would be merged
+		assert Schedule({
+			0: [
+				(_t(6, 0), _t(7, 0)),
+				(_t(6, 30), _t(9, 0)),
+				(_t(4, 00), _t(21, 0))
+			]
+		}).effective() == {
+			0: [
+				(_t(4, 0), _t(21, 0)),
+			]
+		}
+
+		# Overlapping and superseding periods together
+		assert Schedule({
+			0: [
+				(_t(6, 0), _t(7, 0)),
+				(_t(15, 0), _t(17, 0)),
+				(_t(6, 30), _t(9, 0)),
+				(_t(13, 0), _t(18, 0)),
+			]
+		}).effective() == {
+			0: [
+				(_t(6, 0), _t(9, 0)),
+				(_t(13, 0), _t(18, 0)),
+			]
+		}

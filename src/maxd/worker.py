@@ -73,6 +73,50 @@ class Schedule(object):
 	def items(self):
 		return self.events.items()
 
+	def effective(self):
+		new = {}
+
+		for weekday, periods in self.events.items():
+			periods = sorted(periods)
+			new_periods = []
+
+			while periods:
+				current = periods.pop(0)
+				other = periods
+
+				# remove current period if another period starts before and ends after
+				if any((p[0] < current[0] and p[1] > current[1] for p in other)) or \
+					any((p[0] < current[0] and p[1] > current[1] for p in new_periods)):
+					logger.debug("Removing period %s because it's contained in a larger period" % (current, ))
+					continue
+
+				new_periods.append(current)
+
+			# extend periods (change start or end)
+			periods = sorted(new_periods)
+			new_periods = []
+			while periods:
+				current = periods.pop(0)
+				other = periods
+
+				candidates = [
+					(s, e) for s, e in other
+					if (current[0] <= s <= current[1]) or (current[0] <= e <= current[1])
+				]
+				if candidates:
+					new_start = min(p[0] for p in candidates + [current])
+					new_end = max(p[1] for p in candidates + [current])
+					logger.debug("Replacing %s and %s with new: %s to %s" % (current, candidates, new_start, new_end))
+					new_periods.append((new_start, new_end))
+					for c in candidates:
+						del periods[periods.index(c)]
+				else:
+					new_periods.append(current)
+
+			new[weekday] = new_periods
+
+		return new
+
 	def __eq__(self, other):
 		return isinstance(other, Schedule) and self.events == other.events
 
