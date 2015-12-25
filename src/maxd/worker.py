@@ -5,6 +5,7 @@ import datetime
 from dateutil import rrule
 
 import pytz
+from dateutil.tz import tzlocal
 from icalendar import Calendar
 
 from pymax.cube import Discovery, Cube
@@ -15,6 +16,8 @@ except ImportError: # pragma: nocover
 	from urllib.parse import urlsplit
 
 logger = logging.getLogger(__name__)
+
+weekday_names = ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')
 
 def _to_utc_datetime(dt):
 	if dt is None:
@@ -142,21 +145,41 @@ class Worker(object):
 			except:
 				logger.exception("Failed to read events from %s" % calendar_config.name)
 
-		logger.info("Creating schedule for %s events" % len(events))
 		static_schedule = self.get_static_schedule(start)
 		calendar_schedule = self.create_schedule(events)
+
+		if logger.isEnabledFor(logging.DEBUG):
+			def _debug_schedule(schedule):
+				for wd in sorted(schedule.events.keys()):
+					logger.debug("  %s:" % weekday_names[wd])
+					for start, end in sorted(schedule.events[wd]):
+						logger.debug("    %s -> %s" % (start, end))
+
+			logger.debug("Static schedule:")
+			_debug_schedule(static_schedule)
+
+			logger.debug("Calendar events schedule:")
+			_debug_schedule(calendar_schedule)
+
 		self.apply_schedule(static_schedule + calendar_schedule)
 
 	def get_static_schedule(self, start):
 		d = {}
 
 		for day in range(0, 7):
+			# use start (of the week we are looking at), reset to midnight and add x days
 			dt = start.astimezone(pytz.UTC).replace(hour=0, minute=0, second=0, microsecond=0) + datetime.timedelta(days=day)
+			# static schedules are always considered the local timezone
+			local_dt = dt.astimezone(tzlocal())
+
 			weekday = dt.weekday()
-			d[weekday] = [
-				(dt.replace(hour=event_start.hour, minute=event_start.minute), dt.replace(hour=event_end.hour, minute=event_end.minute))
-				for event_start, event_end in self.config.static_schedule.get(weekday, [])
-			]
+			d[weekday] = []
+			for event_start, event_end in self.config.static_schedule.get(weekday, []):
+				# use the *local* datetime of midnight of day x in our window for start and end.
+				s = local_dt.replace(hour=event_start.hour, minute=event_start.minute).astimezone(pytz.UTC) - self.config.warmup_duration
+				e = local_dt.replace(hour=event_end.hour, minute=event_end.minute).astimezone(pytz.UTC)
+
+				d[weekday].append((s, e))
 
 		return Schedule(d)
 
@@ -220,19 +243,19 @@ class Worker(object):
 			# restrict end of period to the end of the day
 			end_of_day = (event.start + datetime.timedelta(hours=23, minutes=59, seconds=59)).replace(hour=0, minute=0, second=0) - datetime.timedelta(seconds=1)
 			end = min(event.end, end_of_day)
-			logger.debug(" Begin warmup: %s, end warm: %s" % (start, end))
 
 			schedule[start.weekday()] = schedule.get(start.weekday(), []) + [(start, end)]
-
-		for wd in sorted(schedule.keys()):
-			logger.debug("Weekday %s:" % wd)
-			for start, end in sorted(schedule[wd]):
-				logger.debug("  %s -> %s" % (start, end))
 
 		return Schedule(schedule)
 
 	def apply_schedule(self, schedule):
-		pass
+		effective_schedule = schedule.effective()
+
+		if logger.isEnabledFor(logging.INFO):
+			logger.info("Writing effective schedule to cube:")
+			for weekday_num, items in effective_schedule.items():
+				logger.info("%10s: %s" % (weekday_names[weekday_num], ', '.join("%s to %s" % x for x in items)))
+
 		# with self.connect_to_cube() as cube:
 		# 	pass
 

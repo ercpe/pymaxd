@@ -108,31 +108,42 @@ class TestWorker(object):
 
 		assert schedule == Schedule(d)
 
-	def test_get_static_schedule(self):
+	def test_get_static_schedule(self, monkeypatch):
 		w = Worker(Configuration('/dev/null'))
 		w.config.cfg_parser.readfp(StringIO("""
 [static]
-monday = 01:00 - 02:00
-tuesday = 02:00 - 03:00
-wednesday = 03:00 - 04:00
-thursday = 04:00 - 05:00
-friday = 05:00 - 06:00
-saturday = 06:00 - 07:00
-sunday = 07:00 - 08:00
+monday = 11:00 - 12:00
+tuesday = 12:00 - 13:00
+wednesday = 13:00 - 14:00
+thursday = 14:00 - 15:00
+friday = 15:00 - 16:00
+saturday = 16:00 - 17:00
+sunday = 17:00 - 18:00
 """))
 		static_schedule = w.get_static_schedule(datetime.datetime(2015, 12, 21, tzinfo=pytz.UTC))
+
+		# the static schedule is always in local time, so monkeypatch dateutil.tz.tzlocal() to return a constant
+		# timezone to avoid test failures in different timezones
+		def faketz():
+			return pytz.timezone('Europe/Berlin')
+		import dateutil.tz
+		monkeypatch.setattr(dateutil.tz, 'tzlocal', lambda: faketz())
 
 		def _dt_time(day, h, m):
 			return datetime.datetime(2015, 12, day, h, m, tzinfo=pytz.UTC)
 
+		# While the static schedules are presented in local time in the configuration file, the get_static_schedule
+		# method converts them to UTC. 2015-12-21 in Europe/Berlin is +0100
+		# get_static_schedule also substracts warmup_duration from the start datetime.
+		# in the result, the start datetime is -01:30 and the end datetime -01:00
 		assert static_schedule.events == {
-			0: [(_dt_time(21, 1, 0), _dt_time(21, 2, 0))],
-			1: [(_dt_time(22, 2, 0), _dt_time(22, 3, 0))],
-			2: [(_dt_time(23, 3, 0), _dt_time(23, 4, 0))],
-			3: [(_dt_time(24, 4, 0), _dt_time(24, 5, 0))],
-			4: [(_dt_time(25, 5, 0), _dt_time(25, 6, 0))],
-			5: [(_dt_time(26, 6, 0), _dt_time(26, 7, 0))],
-			6: [(_dt_time(27, 7, 0), _dt_time(27, 8, 0))]
+			0: [(_dt_time(21, 9, 30), _dt_time(21, 11, 0))],
+			1: [(_dt_time(22, 10, 30), _dt_time(22, 12, 0))],
+			2: [(_dt_time(23, 11, 30), _dt_time(23, 13, 0))],
+			3: [(_dt_time(24, 12, 30), _dt_time(24, 14, 0))],
+			4: [(_dt_time(25, 13, 30), _dt_time(25, 15, 0))],
+			5: [(_dt_time(26, 14, 30), _dt_time(26, 16, 0))],
+			6: [(_dt_time(27, 15, 30), _dt_time(27, 17, 0))]
 		}
 
 
