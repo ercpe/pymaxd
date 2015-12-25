@@ -2,7 +2,7 @@
 
 import pyparsing
 
-class Parser(object):
+class Parser(object): # pragma: nocover
 
 	def parse(self, s):
 		field = pyparsing.Word(pyparsing.alphanums)
@@ -20,7 +20,7 @@ class Parser(object):
 		print(pattern.parseString(s))
 
 
-if __name__ == '__main__':
+if __name__ == '__main__': # pragma: nocover
 
 	p = Parser()
 
