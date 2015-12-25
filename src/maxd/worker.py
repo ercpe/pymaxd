@@ -5,7 +5,7 @@ import datetime
 from dateutil import rrule
 
 import pytz
-from dateutil.tz import tzlocal
+import dateutil.tz
 from icalendar import Calendar
 
 from pymax.cube import Discovery, Cube
@@ -170,7 +170,7 @@ class Worker(object):
 			# use start (of the week we are looking at), reset to midnight and add x days
 			dt = start.astimezone(pytz.UTC).replace(hour=0, minute=0, second=0, microsecond=0) + datetime.timedelta(days=day)
 			# static schedules are always considered the local timezone
-			local_dt = dt.astimezone(tzlocal())
+			local_dt = dt.astimezone(dateutil.tz.tzlocal())
 
 			weekday = dt.weekday()
 			d[weekday] = []

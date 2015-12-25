@@ -109,6 +109,13 @@ class TestWorker(object):
 		assert schedule == Schedule(d)
 
 	def test_get_static_schedule(self, monkeypatch):
+		# the static schedule is always in local time, so monkeypatch dateutil.tz.tzlocal() to return a constant
+		# timezone to avoid test failures in different timezones
+		def faketz():
+			return pytz.timezone('Europe/Berlin')
+		import dateutil.tz
+		monkeypatch.setattr(dateutil.tz, 'tzlocal', lambda: faketz())
+
 		w = Worker(Configuration('/dev/null'))
 		w.config.cfg_parser.readfp(StringIO("""
 [static]
@@ -121,13 +128,6 @@ saturday = 16:00 - 17:00
 sunday = 17:00 - 18:00
 """))
 		static_schedule = w.get_static_schedule(datetime.datetime(2015, 12, 21, tzinfo=pytz.UTC))
-
-		# the static schedule is always in local time, so monkeypatch dateutil.tz.tzlocal() to return a constant
-		# timezone to avoid test failures in different timezones
-		def faketz():
-			return pytz.timezone('Europe/Berlin')
-		import dateutil.tz
-		monkeypatch.setattr(dateutil.tz, 'tzlocal', lambda: faketz())
 
 		def _dt_time(day, h, m):
 			return datetime.datetime(2015, 12, day, h, m, tzinfo=pytz.UTC)
