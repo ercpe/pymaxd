@@ -13,10 +13,10 @@ from maxd.worker import Worker, LocalCalendarEventFetcher, _to_utc_datetime, Eve
 
 class TestWorker(object):
 
-	def test_execute(self):
-		config = Configuration('tests/fixtures/config/basic.cfg')
-		w = Worker(config)
-		w.execute()
+	# def test_execute(self):
+	# 	config = Configuration('tests/fixtures/config/basic.cfg')
+	# 	w = Worker(config)
+	# 	w.execute()
 
 	def test_apply_range_filter(self):
 		w = Worker(None)
@@ -211,7 +211,7 @@ class TestSchedule(object):
 				(_t(5, 0), _t(10, 0)),
 				(_t(7, 0), _t(8, 0))
 			]
-		}).effective() == {
+		}).effective().events == {
 			0: [
 				(_t(5, 0), _t(10, 0)),
 			]
@@ -223,7 +223,7 @@ class TestSchedule(object):
 				(_t(7, 0), _t(8, 0)),
 				(_t(5, 0), _t(10, 0)),
 			]
-		}).effective() == {
+		}).effective().events == {
 			0: [
 				(_t(5, 0), _t(10, 0)),
 			]
@@ -242,7 +242,7 @@ class TestSchedule(object):
 				(_t(6, 0), _t(7, 0)),
 				(_t(6, 30), _t(9, 0)),
 			]
-		}).effective() == {
+		}).effective().events == {
 			0: [
 				(_t(6, 0), _t(9, 0)),
 			]
@@ -260,7 +260,7 @@ class TestSchedule(object):
 				(_t(15, 0), _t(17, 0)),
 				(_t(6, 30), _t(9, 0)),
 			]
-		}).effective() == {
+		}).effective().events == {
 			0: [
 				(_t(6, 0), _t(9, 0)),
 				(_t(15, 0), _t(17, 0)),
@@ -278,7 +278,7 @@ class TestSchedule(object):
 				(_t(6, 30), _t(9, 0)),
 				(_t(4, 00), _t(21, 0))
 			]
-		}).effective() == {
+		}).effective().events == {
 			0: [
 				(_t(4, 0), _t(21, 0)),
 			]
@@ -292,7 +292,7 @@ class TestSchedule(object):
 				(_t(6, 30), _t(9, 0)),
 				(_t(13, 0), _t(18, 0)),
 			]
-		}).effective() == {
+		}).effective().events == {
 			0: [
 				(_t(6, 0), _t(9, 0)),
 				(_t(13, 0), _t(18, 0)),

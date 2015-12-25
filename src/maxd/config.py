@@ -167,6 +167,10 @@ class Configuration(object):
 		return self.get_int('cube', 'port', None)
 
 	@property
+	def cube_timezone(self):
+		return self.get_option('cube', 'timezone')
+
+	@property
 	def static_schedule(self):
 		if self._static is None:
 			schedule = {}

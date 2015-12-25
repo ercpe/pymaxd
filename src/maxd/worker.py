@@ -118,7 +118,7 @@ class Schedule(object):
 
 			new[weekday] = new_periods
 
-		return new
+		return Schedule(new)
 
 	def __eq__(self, other):
 		return isinstance(other, Schedule) and self.events == other.events
@@ -129,6 +129,7 @@ class Worker(object):
 	def __init__(self, config):
 		self.config = config
 		self.exception = None
+		self._current_schedule = None
 
 	def execute(self):
 		logger.info("Running...")
@@ -269,12 +270,28 @@ class Worker(object):
 		effective_schedule = schedule.effective()
 
 		if logger.isEnabledFor(logging.INFO):
-			logger.info("Writing effective schedule to cube:")
+			logger.info("Effective schedule:")
 			for weekday_num, items in effective_schedule.items():
 				logger.info("%10s: %s" % (weekday_names[weekday_num], ', '.join("%s to %s" % x for x in items)))
 
-		# with self.connect_to_cube() as cube:
-		# 	pass
+		if self._current_schedule == schedule:
+			logger.info("Schedule unchanged")
+			return
+
+		with self.connect_to_cube() as cube:
+			# i would like to use the 'v' message to get the timezone from the cube
+			# unfortunately, at least my cube doesn't set the timezone properly when using the max cube software
+			if self.config.cube_timezone:
+				cube_tz = pytz.timezone(self.config.cube_timezone)
+			else:
+				cube_tz = dateutil.tz.tzlocal()
+			logger.info("Cube time zone: %s" % cube_tz)
+
+			for weekday_num, items in effective_schedule.items():
+				pass
+				#cube.set_program(room, rf_addr, weekday_num, program)
+
+		self._current_schedule = schedule
 
 	def connect_to_cube(self):
 		cube_addr = None
