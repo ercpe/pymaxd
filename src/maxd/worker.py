@@ -59,11 +59,16 @@ class HTTPCalendarEventFetcher(EventFetcher):
 class Schedule(object):
 
 	def __init__(self, weekday_events={}):
-		self.events = weekday_events
+		self.events = weekday_events or {}
 
 	def __add__(self, other):
+		if not isinstance(other, Schedule):
+			raise ValueError("Cannot add %s instance to %s" % (other.__class__.__name__, self.__class__.__name__))
+
 		for k, v in other.items():
 			self.events[k] = self.events.get(k, []) + v
+
+		return self
 
 	def items(self):
 		return self.events.items()

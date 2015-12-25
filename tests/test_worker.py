@@ -131,3 +131,22 @@ class TestFetcherUtils(object):
 	def test_dt_conversion_different_timezones(self):
 		dt = datetime.datetime(2015, 12, 20, 10, 0, 0, tzinfo=pytz.timezone('Europe/Berlin'))
 		assert _to_utc_datetime(dt).timetuple() == dt.utctimetuple()
+
+
+class TestSchedule(object):
+
+	def test_constructor(self):
+		assert Schedule(None).events == {}
+		assert Schedule({}).events == {}
+
+	def test_add(self):
+		assert (Schedule({0: ['foo']}) + Schedule({1: ['bar']})).events == {
+			0: ['foo'],
+			1: ['bar']
+		}
+		assert (Schedule({0: ['foo']}) + Schedule({0: ['bar']})).events == {
+			0: ['foo', 'bar'],
+		}
+
+		with pytest.raises(ValueError):
+			Schedule() + 'lalala'
