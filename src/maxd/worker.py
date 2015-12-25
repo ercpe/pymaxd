@@ -195,11 +195,10 @@ class Worker(object):
 		events = fetcher.fetch(calendar_config)
 
 		# filter the fetched events for the current period and convert them to Event instances
-		logger.info("Applying range filter to fetched events")
+		logger.info("Applying range filter to fetched events from %s" % calendar_config.name)
 		events = self.apply_range_filter(events, start, end)
 
-		logger.info("Applying user filter to events")
-		return self.apply_user_filter(calendar_config, events)
+		return events
 
 	def apply_range_filter(self, events, start, end):
 
@@ -226,9 +225,6 @@ class Worker(object):
 		for ev, event_start in filtered_events:
 			event_end = event_start + (ev['DTEND'].dt - ev['DTSTART'].dt)
 			yield Event(name=str(ev['SUMMARY']), start=event_start, end=event_end)
-
-	def apply_user_filter(self, calendar_config, events):
-		return events
 
 	def create_schedule(self, events):
 		schedule = {}

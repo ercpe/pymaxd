@@ -30,18 +30,6 @@ class TestWorker(object):
 		assert len(filtered) == 4
 		assert all([x.name == 'Ending repeating event' for x in filtered])
 
-	def test_apply_filters_no_filters(self):
-		cc = CalendarConfig(name='test', url='tests/fixtures/calendars/single_event.ics')
-
-		n = datetime.datetime.now(tz=pytz.UTC)
-		events = [Event(name='test', start=n, end=n)]
-
-		w = Worker(None)
-		filtered_events = w.apply_user_filter(cc, events)
-		filtered = list(filtered_events)
-
-		assert filtered_events == events
-
 	def test_apply_range_filter_exclude(self):
 		w = Worker(None)
 
@@ -107,6 +95,30 @@ class TestWorker(object):
 		}
 
 		assert schedule == Schedule(d)
+
+	def test_create_schedule_all_day_events(self):
+		w = Worker(Configuration('/dev/null'))
+
+		with open('tests/fixtures/calendars/feiertage.ics', 'r') as f:
+			events = [o for o in icalendar.Calendar.from_ical(f.read()).walk() if o.name == 'VEVENT']
+
+		vevents = w.apply_range_filter(events,
+									   start=datetime.datetime(2015, 12, 21, tzinfo=pytz.UTC),
+									   end=datetime.datetime(2015, 12, 27, 23, 59, 59, tzinfo=pytz.UTC))
+		schedule = w.create_schedule(vevents)
+		assert schedule.events == {
+			4: [
+				(datetime.datetime(2015, 12, 25, tzinfo=pytz.UTC), datetime.datetime(2015, 12, 25, 23, 59, 59, tzinfo=pytz.UTC)),
+			],
+			5: [
+				(datetime.datetime(2015, 12, 26, tzinfo=pytz.UTC), datetime.datetime(2015, 12, 26, 23, 59, 59, tzinfo=pytz.UTC)),
+			],
+		}
+		x = list(vevents)
+		print(x)
+
+
+		#assert False
 
 	def test_get_static_schedule(self, monkeypatch):
 		# the static schedule is always in local time, so monkeypatch dateutil.tz.tzlocal() to return a constant
