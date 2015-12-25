@@ -3,6 +3,10 @@ import datetime
 import pytest
 import icalendar
 import pytz
+try:
+	from StringIO import StringIO
+except ImportError:
+	from io import StringIO
 from maxd.config import Configuration, CalendarConfig
 from maxd.worker import Worker, LocalCalendarEventFetcher, _to_utc_datetime, Event, Schedule
 
@@ -103,6 +107,33 @@ class TestWorker(object):
 		}
 
 		assert schedule == Schedule(d)
+
+	def test_get_static_schedule(self):
+		w = Worker(Configuration('/dev/null'))
+		w.config.cfg_parser.readfp(StringIO("""
+[static]
+monday = 01:00 - 02:00
+tuesday = 02:00 - 03:00
+wednesday = 03:00 - 04:00
+thursday = 04:00 - 05:00
+friday = 05:00 - 06:00
+saturday = 06:00 - 07:00
+sunday = 07:00 - 08:00
+"""))
+		static_schedule = w.get_static_schedule(datetime.datetime(2015, 12, 21, tzinfo=pytz.UTC))
+
+		def _dt_time(day, h, m):
+			return datetime.datetime(2015, 12, day, h, m, tzinfo=pytz.UTC)
+
+		assert static_schedule.events == {
+			0: [(_dt_time(21, 1, 0), _dt_time(21, 2, 0))],
+			1: [(_dt_time(22, 2, 0), _dt_time(22, 3, 0))],
+			2: [(_dt_time(23, 3, 0), _dt_time(23, 4, 0))],
+			3: [(_dt_time(24, 4, 0), _dt_time(24, 5, 0))],
+			4: [(_dt_time(25, 5, 0), _dt_time(25, 6, 0))],
+			5: [(_dt_time(26, 6, 0), _dt_time(26, 7, 0))],
+			6: [(_dt_time(27, 7, 0), _dt_time(27, 8, 0))]
+		}
 
 
 class TestFetcher(object):

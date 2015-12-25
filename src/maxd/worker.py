@@ -99,20 +99,19 @@ class Worker(object):
 				logger.exception("Failed to read events from %s" % calendar_config.name)
 
 		logger.info("Creating schedule for %s events" % len(events))
-		static_schedule = self.get_static_schedule(start, end)
+		static_schedule = self.get_static_schedule(start)
 		calendar_schedule = self.create_schedule(events)
 		self.apply_schedule(static_schedule + calendar_schedule)
 
-	def get_static_schedule(self, start, end):
+	def get_static_schedule(self, start):
 		d = {}
 
-		for day in range(0, 6):
-			dt = start.astimezone(pytz.UTC).replace(hour=0, minute=0, second=0, microsecond=0) + \
-						datetime.timedelta(days=0)
+		for day in range(0, 7):
+			dt = start.astimezone(pytz.UTC).replace(hour=0, minute=0, second=0, microsecond=0) + datetime.timedelta(days=day)
 			weekday = dt.weekday()
 			d[weekday] = [
-				(dt.replace(hour=start.hour, minute=start.minute), dt.replace(hour=end.hour, minute=end.minute))
-				for start, end in self.config.static_schedule.get(weekday, [])
+				(dt.replace(hour=event_start.hour, minute=event_start.minute), dt.replace(hour=event_end.hour, minute=event_end.minute))
+				for event_start, event_end in self.config.static_schedule.get(weekday, [])
 			]
 
 		return Schedule(d)
