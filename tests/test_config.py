@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 import datetime
 import pytest
-
-from maxd.config import Configuration, timediff, max_value, min_value
+try:
+	from StringIO import StringIO
+except ImportError:
+	from io import StringIO
+from maxd.config import Configuration, timediff, max_value, min_value, time_range
 
 
 class TestConfig(object):
@@ -136,3 +139,49 @@ class TestConfig(object):
 
 		cfg2 = Configuration('tests/fixtures/config/temperatures_low.cfg')
 		assert cfg2.low_temperature == 5
+
+	def test_get_static_schedule_not_set(self):
+		cfg1 = Configuration('/dev/null')
+		assert cfg1.static_schedule == { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], }
+
+		cfg2 = Configuration('/dev/null')
+		cfg2.cfg_parser.readfp(StringIO("""
+[static]
+monday =
+tuesday =
+wednesday =
+thursday =
+friday =
+saturday =
+sunday =
+"""))
+		assert cfg2.static_schedule == { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], }
+
+	def test_get_static_schedule(self):
+		cfg1 = Configuration('/dev/null')
+		cfg1.cfg_parser.readfp(StringIO("""
+[static]
+monday = 08:00 - 10:00
+"""))
+		assert cfg1.static_schedule == { 0: [
+			(datetime.time(8, 0), datetime.time(10, 0)),
+		], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], }
+
+	def test_time_range(self):
+		assert list(time_range('')) == []
+		assert list(time_range(None)) == []
+
+		for bad in ('foobar', 'ab:cd', '123:456', '123:456 789:012', '1 2', '12:34 56:78'):
+			with pytest.raises(ValueError):
+				list(time_range(bad))
+
+		assert list(time_range('10:00-11:00')) == [(10, 00, 11, 00)]
+		assert list(time_range('10:00 - 11:00')) == [(10, 00, 11, 00)]
+		assert list(time_range('77:88-99:00')) == [(77, 88, 99, 00)]
+
+		assert list(time_range('08:30 - 09:00, 05:15-17:00')) == [
+			(8, 30, 9, 0),
+			(5, 15, 17, 00),
+		]
+
+		assert list(time_range('08:30 - 09:00,')) == [(8, 30, 9, 0)]

@@ -77,10 +77,12 @@ def time_range(s):
 		periods = [x.strip() for x in s.split(',')]
 
 		for p in periods:
-			m = re.match(r"(\d{1,2}):(\d{1,2})\s*-\s*(\d{1,2}):(\d{1,2})", s)
+			if not p:
+				continue
+			m = re.match(r"(\d{1,2}):(\d{1,2})\s*-\s*(\d{1,2}):(\d{1,2})", p)
 			if not m:
-				raise ValueError("'%s' does not match 'hh:mm - hh:mm'")
-			yield (m.group(0), m.group(1)), (m.group(2), m.group(3)),
+				raise ValueError("'%s' does not match 'hh:mm - hh:mm'" % p)
+			yield int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4))
 
 
 class CalendarConfig(collections.namedtuple('CalendarConfig', ('name', 'url', 'username', 'password'))):
@@ -167,7 +169,7 @@ class Configuration(object):
 	@property
 	def static_schedule(self):
 		if self._static is None:
-			d = {}
+			schedule = {}
 
 			for weekday, name in (
 				(0, 'monday'),
@@ -179,9 +181,9 @@ class Configuration(object):
 				(6, 'sunday'),
 			):
 				s = self.get_option('static', name)
-				d[weekday] = [
+				schedule[weekday] = [
 					(datetime.time(a, b), datetime.time(c, d)) for a, b, c, d in time_range(s)
 				]
-			self._static = d
+			self._static = schedule
 
 		return self._static
