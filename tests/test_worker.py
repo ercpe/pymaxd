@@ -96,7 +96,14 @@ class TestWorker(object):
 
 		assert schedule == Schedule(d)
 
-	def test_create_schedule_all_day_events(self):
+	def test_create_schedule_all_day_events(self, monkeypatch):
+		# the static schedule is always in local time, so monkeypatch dateutil.tz.tzlocal() to return a constant
+		# timezone to avoid test failures in different timezones
+		def faketz():
+			return pytz.timezone('Europe/Berlin')
+		import dateutil.tz
+		monkeypatch.setattr(dateutil.tz, 'tzlocal', lambda: faketz())
+
 		w = Worker(Configuration('/dev/null'))
 
 		with open('tests/fixtures/calendars/feiertage.ics', 'r') as f:
@@ -109,10 +116,10 @@ class TestWorker(object):
 		schedule = w.create_schedule(vevents)
 		assert schedule.events == {
 			4: [
-				(datetime.datetime(2015, 12, 25, 4, 30, 0, tzinfo=pytz.UTC), datetime.datetime(2015, 12, 25, 22, 0, 0, tzinfo=pytz.UTC)),
+				(datetime.datetime(2015, 12, 25, 5, 30, 0, tzinfo=pytz.timezone('Europe/Berlin')), datetime.datetime(2015, 12, 25, 23, 0, 0, tzinfo=pytz.timezone('Europe/Berlin'))),
 			],
 			5: [
-				(datetime.datetime(2015, 12, 26, 4, 30, 0, tzinfo=pytz.UTC), datetime.datetime(2015, 12, 26, 22, 0, 0, tzinfo=pytz.UTC)),
+				(datetime.datetime(2015, 12, 26, 5, 30, 0, tzinfo=pytz.timezone('Europe/Berlin')), datetime.datetime(2015, 12, 26, 23, 0, 0, tzinfo=pytz.timezone('Europe/Berlin'))),
 			],
 		}
 
