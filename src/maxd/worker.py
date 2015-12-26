@@ -9,6 +9,7 @@ import dateutil.tz
 from icalendar import Calendar
 
 from pymax.cube import Discovery, Cube
+from pymax.objects import ProgramSchedule
 
 try:
 	from urlparse import urlsplit
@@ -125,6 +126,19 @@ class Schedule(object):
 			self.events[wd] = [
 				(start.astimezone(tz), end.astimezone(tz)) for start, end in periods
 			]
+
+	def to_program(self, weekday, low_temp, high_temp):
+		periods = self.events[weekday]
+
+		start = datetime.time()
+		for pstart, pend in periods:
+			yield ProgramSchedule(low_temp, start, pstart.time())
+			yield ProgramSchedule(high_temp, pstart.time(), pend.time())
+			start = pend.time()
+
+		end_of_day = datetime.time(23, 59, 59)
+		if start < end_of_day:
+			yield ProgramSchedule(low_temp, start, end_of_day)
 
 	def __eq__(self, other):
 		return isinstance(other, Schedule) and self.events == other.events
@@ -292,9 +306,16 @@ class Worker(object):
 			else:
 				cube_tz = dateutil.tz.tzlocal()
 			logger.info("Cube time zone: %s" % cube_tz)
+			effective_schedule.as_timezone(cube_tz)
 
-			for weekday_num, items in effective_schedule.items():
-				pass
+			for weekday_num in effective_schedule.events.keys():
+				programs = effective_schedule.to_program(weekday_num,
+											   self.config.low_temperature or 1,
+											   self.config.high_temperature or 100)
+
+				logger.info("Writing to cube:")
+				logger.info("%10s: %s" % (weekday_names[weekday_num], ', '.join(["%s-%s (%s)" % (x.begin_time, x.end_time, x.temperature) for x in programs])))
+
 				#cube.set_program(room, rf_addr, weekday_num, program)
 
 		self._current_schedule = schedule

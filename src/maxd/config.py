@@ -191,3 +191,19 @@ class Configuration(object):
 			self._static = schedule
 
 		return self._static
+
+	@property
+	def room_id(self):
+		return self.get_int('room', 'id')
+
+	@property
+	def room_name(self):
+		return self.get_int('room', 'name')
+
+	@property
+	def room_rf_addr(self):
+		return self.get_int('room', 'rf_addr')
+
+	@property
+	def has_room_settings(self):
+		return self.room_id or self.room_name or self.room_rf_addr
