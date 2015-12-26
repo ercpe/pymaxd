@@ -207,3 +207,8 @@ class Configuration(object):
 	@property
 	def has_room_settings(self):
 		return self.room_id or self.room_name or self.room_rf_addr
+
+	@property
+	def allday_range(self):
+		a, b, c, d = time_range(self.get_option('GENERAL', 'allday', '06:00 - 23:00'))
+		return datetime.time(a, b), datetime.time(c, d)
