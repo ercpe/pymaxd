@@ -2,4 +2,4 @@
 icalendar
 pytz
 python-dateutil
-pymax
+pymax>=0.2
