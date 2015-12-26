@@ -124,7 +124,7 @@ class TestConfig(object):
 
 	def test_get_high_temperature_not_set(self):
 		cfg = Configuration('/dev/null')
-		assert cfg.high_temperature is None
+		assert cfg.high_temperature == 24
 
 	def test_get_high_temperature_limited(self):
 		cfg1 = Configuration('tests/fixtures/config/temperatures_high.cfg')

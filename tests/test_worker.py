@@ -19,7 +19,7 @@ class TestWorker(object):
 	# 	w.execute()
 
 	def test_apply_range_filter(self):
-		w = Worker(None)
+		w = Worker(Configuration('/dev/null'))
 
 		with open('tests/fixtures/calendars/repeating.ics', 'r') as f:
 			events = [o for o in icalendar.Calendar.from_ical(f.read()).walk() if o.name == 'VEVENT']
@@ -30,7 +30,7 @@ class TestWorker(object):
 		assert len(filtered) == 4
 
 	def test_apply_range_filter_exclude(self):
-		w = Worker(None)
+		w = Worker(Configuration('/dev/null'))
 
 		with open('tests/fixtures/calendars/repeating.ics', 'r') as f:
 			events = [o for o in icalendar.Calendar.from_ical(f.read()).walk() if o.name == 'VEVENT']
@@ -109,10 +109,10 @@ class TestWorker(object):
 		schedule = w.create_schedule(vevents)
 		assert schedule.events == {
 			4: [
-				(datetime.datetime(2015, 12, 25, tzinfo=pytz.UTC), datetime.datetime(2015, 12, 25, 23, 59, 59, tzinfo=pytz.UTC)),
+				(datetime.datetime(2015, 12, 25, 4, 30, 0, tzinfo=pytz.UTC), datetime.datetime(2015, 12, 25, 22, 0, 0, tzinfo=pytz.UTC)),
 			],
 			5: [
-				(datetime.datetime(2015, 12, 26, tzinfo=pytz.UTC), datetime.datetime(2015, 12, 26, 23, 59, 59, tzinfo=pytz.UTC)),
+				(datetime.datetime(2015, 12, 26, 4, 30, 0, tzinfo=pytz.UTC), datetime.datetime(2015, 12, 26, 22, 0, 0, tzinfo=pytz.UTC)),
 			],
 		}
 

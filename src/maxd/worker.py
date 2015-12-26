@@ -136,8 +136,8 @@ class Schedule(object):
 			yield ProgramSchedule(high_temp, pstart.time(), pend.time())
 			start = pend.time()
 
-		end_of_day = datetime.time(23, 59, 59)
-		if start < end_of_day:
+		end_of_day = 1440
+		if ((start.hour * 60) + start.minute) < end_of_day:
 			yield ProgramSchedule(low_temp, start, end_of_day)
 
 	def __eq__(self, other):
@@ -226,8 +226,10 @@ class Worker(object):
 		end = (end.astimezone(pytz.UTC) if end.tzinfo else end).replace(hour=23, minute=59, second=59)
 
 		def _to_all_day(date):
-			return datetime.datetime.combine(date, datetime.time()).replace(tzinfo=pytz.UTC), \
-					datetime.datetime.combine(date, datetime.time(23, 59, 59)).replace(tzinfo=pytz.UTC)
+			allday_start, allday_end = self.config.allday_range
+			day_start = datetime.datetime.combine(date, allday_start).replace(tzinfo=dateutil.tz.tzlocal())
+			day_end = datetime.datetime.combine(date, allday_end).replace(tzinfo=dateutil.tz.tzlocal())
+			return day_start.astimezone(pytz.UTC), day_end.astimezone(pytz.UTC)
 
 		def _build_all_events():
 			for cal_event in events:
@@ -272,7 +274,7 @@ class Worker(object):
 		warmup = self.config.warmup_duration
 
 		for event in events:
-			logger.info(event)
+			logger.debug(event)
 
 			start = event.start - warmup
 			if start.date() != event.start.date():
@@ -308,15 +310,29 @@ class Worker(object):
 			logger.info("Cube time zone: %s" % cube_tz)
 			effective_schedule.as_timezone(cube_tz)
 
-			for weekday_num in effective_schedule.events.keys():
-				programs = effective_schedule.to_program(weekday_num,
-											   self.config.low_temperature or 1,
-											   self.config.high_temperature or 100)
+			if self.config.has_room_settings:
+				rooms = []
+				for r in cube.rooms:
+					if (self.config.room_id and r.room_id == self.config.room_id) or \
+							(self.config.room_name and self.config.room_name == r.name) or \
+							(self.config.room_rf_addr and self.config.room_rf_addr == r.rf_address):
+						rooms.append(r)
+			else:
+				rooms = [r for r in cube.rooms]
 
-				logger.info("Writing to cube:")
-				logger.info("%10s: %s" % (weekday_names[weekday_num], ', '.join(["%s-%s (%s)" % (x.begin_time, x.end_time, x.temperature) for x in programs])))
+			if rooms:
+				logger.info("Writing program to cube for rooms %s" % rooms)
+				low_temp = self.config.low_temperature
+				high_temp = self.config.high_temperature
+				for weekday_num in effective_schedule.events.keys():
+					programs = list(effective_schedule.to_program(weekday_num, low_temp, high_temp))
+					logger.info("%10s: %s" % (weekday_names[weekday_num], ', '.join(["%s-%s (%s)" % (x.begin_minutes, x.end_minutes, x.temperature) for x in programs])))
 
-				#cube.set_program(room, rf_addr, weekday_num, program)
+					for room in rooms:
+						logger.debug("Setting program for room %s, rf addr: %s on day %s" % (room.room_id, room.rf_address, weekday_num))
+						cube.set_program(room.room_id, room.rf_address, weekday_num, programs)
+			else:
+				logger.warning("Could not find any rooms to write the program for")
 
 		self._current_schedule = schedule
 

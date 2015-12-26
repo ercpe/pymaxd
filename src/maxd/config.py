@@ -146,13 +146,13 @@ class Configuration(object):
 	@max_value(30)
 	@min_value(5)
 	def high_temperature(self):
-		return self.get_int('GENERAL', 'high_temperature', None)
+		return self.get_int('GENERAL', 'high_temperature', 24)
 
 	@property
 	@max_value(30)
 	@min_value(5)
 	def low_temperature(self):
-		return self.get_int('GENERAL', 'low_temperature', None)
+		return self.get_int('GENERAL', 'low_temperature', 10)
 
 	@property
 	def cube_serial(self):
@@ -210,5 +210,5 @@ class Configuration(object):
 
 	@property
 	def allday_range(self):
-		a, b, c, d = time_range(self.get_option('GENERAL', 'allday', '06:00 - 23:00'))
+		a, b, c, d = list(time_range(self.get_option('GENERAL', 'allday', '06:00 - 23:00')))[0]
 		return datetime.time(a, b), datetime.time(c, d)
