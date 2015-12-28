@@ -3,6 +3,9 @@ import datetime
 import pytest
 import icalendar
 import pytz
+
+from pymax.objects import ProgramSchedule
+
 try:
 	from StringIO import StringIO
 except ImportError:
@@ -294,6 +297,20 @@ class TestSchedule(object):
 				(_t(6, 0), _t(9, 0)), # still the same as in UTC
 			]
 		}
+
+	def test_to_schedule(self):
+		schedule = Schedule({
+			0: [
+				(datetime.datetime(2015, 12, 21, 6, tzinfo=pytz.UTC), datetime.datetime(2015, 12, 21, 9, tzinfo=pytz.UTC)),
+			]
+		}).effective()
+
+		assert list(schedule.to_program(0, 10, 20)) == [
+			ProgramSchedule(10, datetime.time(), datetime.time(6)),
+			ProgramSchedule(20, datetime.time(6), datetime.time(9)),
+			ProgramSchedule(10, datetime.time(9), 1440),
+		]
+
 
 class TestFetcherUtils(object):
 
