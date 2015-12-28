@@ -6,7 +6,6 @@ from dateutil import rrule
 
 import pytz
 import dateutil.tz
-from icalendar import Calendar
 
 from pymax.cube import Discovery, Cube
 from pymax.objects import ProgramSchedule
@@ -36,28 +35,6 @@ class Event(collections.namedtuple('Event', ('name', 'start', 'end'))):
 		kwargs['end'] = _to_utc_datetime(kwargs.pop('end', None))
 
 		return super(Event, cls).__new__(cls, **kwargs)
-
-
-class EventFetcher(object):
-
-	def fetch(self, calendar_config):
-		raise NotImplementedError  # pragma: nocover
-
-
-class LocalCalendarEventFetcher(EventFetcher):
-
-	def fetch(self, calendar_config):
-		with open(calendar_config.url, 'r') as f:
-			calendar = Calendar.from_ical(f.read())
-			for item in calendar.walk():
-				if item.name != "VEVENT":
-					continue
-
-				yield item
-
-
-class HTTPCalendarEventFetcher(EventFetcher):
-	pass
 
 
 class Schedule(object):

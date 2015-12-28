@@ -8,7 +8,7 @@ try:
 except ImportError:
 	from io import StringIO
 from maxd.config import Configuration, CalendarConfig
-from maxd.worker import Worker, LocalCalendarEventFetcher, _to_utc_datetime, Event, Schedule
+from maxd.worker import Worker, Schedule, _to_utc_datetime
 
 
 class TestWorker(object):
@@ -162,34 +162,6 @@ sunday = 17:00 - 18:00
 		}
 
 
-class TestFetcher(object):
-
-	def test_local_fetcher(self):
-		f = LocalCalendarEventFetcher()
-		events = list(f.fetch(CalendarConfig(name='test', url='tests/fixtures/calendars/single_event.ics')))
-		assert len(events) == 1
-
-		event = events[0]
-
-		assert event['SUMMARY'] == 'Test Event'
-		assert event['DTSTART'].dt == datetime.datetime(2015, 12, 20, 9, 0, tzinfo=pytz.UTC)
-		assert event['DTEND'].dt == datetime.datetime(2015, 12, 20, 10, 0, tzinfo=pytz.UTC)
-
-
-class TestFetcherUtils(object):
-
-	def test_dt_conversion_none_arg(self):
-		return _to_utc_datetime(None) is None
-
-	def test_dt_conversion_already_utc(self):
-		dt = datetime.datetime(2015, 12, 20, tzinfo=pytz.UTC)
-		assert _to_utc_datetime(dt) == dt
-
-	def test_dt_conversion_different_timezones(self):
-		dt = datetime.datetime(2015, 12, 20, 10, 0, 0, tzinfo=pytz.timezone('Europe/Berlin'))
-		assert _to_utc_datetime(dt).timetuple() == dt.utctimetuple()
-
-
 class TestSchedule(object):
 
 	def test_constructor(self):
@@ -322,3 +294,16 @@ class TestSchedule(object):
 				(_t(6, 0), _t(9, 0)), # still the same as in UTC
 			]
 		}
+
+class TestFetcherUtils(object):
+
+	def test_dt_conversion_none_arg(self):
+		return _to_utc_datetime(None) is None
+
+	def test_dt_conversion_already_utc(self):
+		dt = datetime.datetime(2015, 12, 20, tzinfo=pytz.UTC)
+		assert _to_utc_datetime(dt) == dt
+
+	def test_dt_conversion_different_timezones(self):
+		dt = datetime.datetime(2015, 12, 20, 10, 0, 0, tzinfo=pytz.timezone('Europe/Berlin'))
+		assert _to_utc_datetime(dt).timetuple() == dt.utctimetuple()
