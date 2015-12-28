@@ -10,7 +10,7 @@ try:
 	from StringIO import StringIO
 except ImportError:
 	from io import StringIO
-from maxd.config import Configuration, CalendarConfig
+from maxd.config import Configuration
 from maxd.worker import Worker, Schedule, _to_utc_datetime
 
 

@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 from icalendar import Calendar
+from cachecontrol import CacheControl
+import requests
+from requests.auth import HTTPBasicAuth
 
 class EventFetcher(object):
 
@@ -20,4 +23,13 @@ class LocalCalendarEventFetcher(EventFetcher):
 
 
 class HTTPCalendarEventFetcher(EventFetcher):
-	pass
+
+	def __init__(self):
+		self.session = CacheControl(requests.session())
+
+	def fetch(self, calendar_config):
+		req_kwargs = {}
+		if calendar_config.auth:
+			req_kwargs['auth'] = HTTPBasicAuth(calendar_config.username, calendar_config.password)
+
+		self.session.get(calendar_config.url, **req_kwargs)
