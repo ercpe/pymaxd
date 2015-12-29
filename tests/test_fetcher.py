@@ -5,12 +5,11 @@ import requests
 import datetime
 import pytz
 import sys
-from requests.auth import HTTPBasicAuth
 
 if sys.version_info.major == 2 or (sys.version_info.major == 3 and sys.version_info.minor <= 2):
-	from mock import Mock
+	from mock import Mock, patch
 else:
-	from unittest.mock import Mock
+	from unittest.mock import Mock, patch
 
 class TestLocalFetcher(object):
 
@@ -33,22 +32,32 @@ class TestHTTPFetcher(object):
 		assert isinstance(f.session, requests.sessions.Session)
 
 	def test_fetch_without_auth(self):
+		response_mock = Mock()
+		with open('tests/fixtures/calendars/single_event.ics', 'r') as f:
+			response_mock.content = f.read()
+
 		f = HTTPCalendarEventFetcher()
 		f.session = Mock()
-		f.session.get = Mock(return_value=None)
+		f.session.get = Mock(return_value=response_mock)
 
-		f.fetch(CalendarConfig(name='test', url='http://example.com/test.ics'))
-
+		response = list(f.fetch(CalendarConfig(name='test', url='http://example.com/test.ics')))
 		f.session.get.assert_called_with('http://example.com/test.ics')
+		assert len(response) == 1
 
 	def test_fetch_with_auth(self):
 		f = HTTPCalendarEventFetcher()
 		f.session = Mock()
 
-		def _assert_get(*args, **kwargs): # stupid way to get around the not implemented __eq__ for HttpBasicAuth
+		def get_mock(*args, **kwargs): # stupid way to get around the not implemented __eq__ for HttpBasicAuth
 			assert len(args) == 1 and args[0] == 'http://example.com/test.ics'
-			assert len(kwargs) == 1 and 'auth' in kwargs and kwargs['auth'].username == 'foo' and kwargs['auth'].password == 'bar'
+			assert len(kwargs) == 1 and 'auth' in kwargs and kwargs['auth'].username == 'foo' and kwargs['auth'].password == 'bar', \
+					"A HTTPBasicAuth instance should be passed to requests"
+			response_mock = Mock()
+			with open('tests/fixtures/calendars/single_event.ics', 'r') as f:
+				response_mock.content = f.read()
+			return response_mock
 
-		f.session.get = _assert_get
-
-		f.fetch(CalendarConfig(name='test', url='http://example.com/test.ics', username='foo', password='bar'))
+		f.session.get = Mock(side_effect=get_mock)
+		response = list(f.fetch(CalendarConfig(name='test', url='http://example.com/test.ics', username='foo', password='bar')))
+		assert f.session.get.called
+		assert len(response) == 1

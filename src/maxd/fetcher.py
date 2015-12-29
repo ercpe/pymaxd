@@ -32,4 +32,11 @@ class HTTPCalendarEventFetcher(EventFetcher):
 		if calendar_config.auth:
 			req_kwargs['auth'] = HTTPBasicAuth(calendar_config.username, calendar_config.password)
 
-		self.session.get(calendar_config.url, **req_kwargs)
+		response = self.session.get(calendar_config.url, **req_kwargs)
+		response.raise_for_status()
+		calendar = Calendar.from_ical(response.content)
+		for item in calendar.walk():
+			if item.name != "VEVENT":
+				continue
+
+			yield item
