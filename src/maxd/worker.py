@@ -7,6 +7,8 @@ from dateutil import rrule
 import pytz
 import dateutil.tz
 
+from maxd.fetcher import HTTPCalendarEventFetcher
+from maxd.fetcher import LocalCalendarEventFetcher
 from pymax.cube import Discovery, Cube
 from pymax.objects import ProgramSchedule
 
