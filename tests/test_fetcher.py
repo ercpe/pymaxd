@@ -7,9 +7,9 @@ import pytz
 import sys
 
 if sys.version_info.major == 2 or (sys.version_info.major == 3 and sys.version_info.minor <= 2):
-	from mock import Mock, patch
+	from mock import Mock
 else:
-	from unittest.mock import Mock, patch
+	from unittest.mock import Mock
 
 class TestLocalFetcher(object):
 
