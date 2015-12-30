@@ -3,8 +3,11 @@ import datetime
 import pytest
 import icalendar
 import pytz
+import sys
 
 from pymax.objects import ProgramSchedule
+
+from maxd.config import CalendarConfig
 
 try:
 	from StringIO import StringIO
@@ -13,6 +16,10 @@ except ImportError:
 from maxd.config import Configuration
 from maxd.worker import Worker, Schedule, _to_utc_datetime
 
+if sys.version_info.major == 2 or (sys.version_info.major == 3 and sys.version_info.minor <= 2):
+	from mock import Mock, patch
+else:
+	from unittest.mock import Mock, patch
 
 class TestWorker(object):
 
@@ -310,6 +317,24 @@ class TestSchedule(object):
 			ProgramSchedule(20, datetime.time(6), datetime.time(9)),
 			ProgramSchedule(10, datetime.time(9), 1440),
 		]
+
+	@patch('maxd.worker.HTTPCalendarEventFetcher')
+	@patch('maxd.worker.LocalCalendarEventFetcher')
+	def test_fetch_events_http(self, local_mock, http_mock):
+		cc = CalendarConfig(name='test', url='http://localhost/test.ics')
+		w = Worker(Configuration('tests/fixtures/config/local.cfg'))
+		w.fetch_events(cc, datetime.datetime.now() - datetime.timedelta(days=6), datetime.datetime.now())
+		assert http_mock.called
+		assert not local_mock.called
+
+	@patch('maxd.worker.HTTPCalendarEventFetcher')
+	@patch('maxd.worker.LocalCalendarEventFetcher')
+	def test_fetch_events_local(self, local_mock, http_mock):
+		cc = CalendarConfig(name='test', url='test/test.ics')
+		w = Worker(Configuration('tests/fixtures/config/local.cfg'))
+		w.fetch_events(cc, datetime.datetime.now() - datetime.timedelta(days=6), datetime.datetime.now())
+		assert local_mock.called
+		assert not http_mock.called
 
 
 class TestFetcherUtils(object):

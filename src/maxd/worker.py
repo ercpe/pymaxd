@@ -10,6 +10,9 @@ import dateutil.tz
 from pymax.cube import Discovery, Cube
 from pymax.objects import ProgramSchedule
 
+from maxd.fetcher import HTTPCalendarEventFetcher
+from maxd.fetcher import LocalCalendarEventFetcher
+
 try:
 	from urlparse import urlsplit
 except ImportError: # pragma: nocover
