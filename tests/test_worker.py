@@ -23,11 +23,6 @@ else:
 
 class TestWorker(object):
 
-	# def test_execute(self):
-	# 	config = Configuration('tests/fixtures/config/basic.cfg')
-	# 	w = Worker(config)
-	# 	w.execute()
-
 	def test_apply_range_filter(self):
 		w = Worker(Configuration('/dev/null'))
 
