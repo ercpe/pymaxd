@@ -28,12 +28,17 @@ class HTTPCalendarEventFetcher(EventFetcher):
 		self.session = CacheControl(requests.session())
 
 	def fetch(self, calendar_config):
-		req_kwargs = {}
+		req_kwargs = {
+			'headers': {
+				'Accept': 'text/calendar'
+			}
+		}
 		if calendar_config.auth:
 			req_kwargs['auth'] = HTTPBasicAuth(calendar_config.username, calendar_config.password)
 
 		response = self.session.get(calendar_config.url, **req_kwargs)
 		response.raise_for_status()
+
 		calendar = Calendar.from_ical(response.content)
 		for item in calendar.walk():
 			if item.name != "VEVENT":

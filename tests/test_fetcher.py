@@ -41,7 +41,9 @@ class TestHTTPFetcher(object):
 		f.session.get = Mock(return_value=response_mock)
 
 		response = list(f.fetch(CalendarConfig(name='test', url='http://example.com/test.ics')))
-		f.session.get.assert_called_with('http://example.com/test.ics')
+		f.session.get.assert_called_with('http://example.com/test.ics', headers={
+			'Accept': 'text/calendar'
+		})
 		assert len(response) == 1
 
 	def test_fetch_with_auth(self):
@@ -50,8 +52,11 @@ class TestHTTPFetcher(object):
 
 		def get_mock(*args, **kwargs): # stupid way to get around the not implemented __eq__ for HttpBasicAuth
 			assert len(args) == 1 and args[0] == 'http://example.com/test.ics'
-			assert len(kwargs) == 1 and 'auth' in kwargs and kwargs['auth'].username == 'foo' and kwargs['auth'].password == 'bar', \
-					"A HTTPBasicAuth instance should be passed to requests"
+			assert len(kwargs) == 2 and \
+				   ('auth' in kwargs and kwargs['auth'].username == 'foo' and kwargs['auth'].password == 'bar') and \
+				   ('headers' in kwargs and kwargs['headers'] == {
+						'Accept': 'text/calendar'
+					}), "A HTTPBasicAuth instance should be passed to requests"
 			response_mock = Mock()
 			with open('tests/fixtures/calendars/single_event.ics', 'r') as f:
 				response_mock.content = f.read()

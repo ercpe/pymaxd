@@ -215,36 +215,42 @@ class Worker(object):
 
 		def _build_all_events():
 			for cal_event in events:
-				all_day = cal_event['DTSTART'].dt.__class__ == datetime.date
+				try:
+					all_day = cal_event['DTSTART'].dt.__class__ == datetime.date
 
-				all_day_start, all_day_end = _to_all_day(cal_event['DTSTART'].dt)
+					all_day_start, all_day_end = _to_all_day(cal_event['DTSTART'].dt)
 
-				if 'RRULE' in cal_event:
-					if all_day:
-						event_start_utc = all_day_start
-					else:
-						event_start_utc = cal_event['DTSTART'].dt.astimezone(pytz.UTC)
-
-					rule = rrule.rrulestr(cal_event.get('RRULE').to_ical().decode('utf-8'), dtstart=event_start_utc.replace(tzinfo=None))
-					if rule._until:
-						# The until field in the RRULE may contain a timezone (even if it's UTC).
-						# Make sure its UTC and remove the tzinfo
-						rule._until = rule._until.astimezone(pytz.UTC).replace(tzinfo=None)
-
-					for dt in rule.between(start.replace(tzinfo=None), end.replace(tzinfo=None), inc=True):
+					if 'RRULE' in cal_event:
 						if all_day:
-							s, e = _to_all_day(dt.date())
+							event_start_utc = all_day_start
+						else:
+							event_start_utc = cal_event['DTSTART'].dt.astimezone(pytz.UTC)
+
+						rule = rrule.rrulestr(cal_event.get('RRULE').to_ical().decode('utf-8'), dtstart=event_start_utc.replace(tzinfo=None))
+						if rule._until:
+							# The until field in the RRULE may contain a timezone (even if it's UTC).
+							# Make sure its UTC and remove the tzinfo
+							rule._until = rule._until.astimezone(pytz.UTC).replace(tzinfo=None)
+
+						for dt in rule.between(start.replace(tzinfo=None), end.replace(tzinfo=None), inc=True):
+							if all_day:
+								s, e = _to_all_day(dt.date())
+								yield Event(name=None, start=s, end=e)
+							else:
+								dt = dt.replace(tzinfo=pytz.UTC)
+								if 'duration' in cal_event:
+									duration = cal_event['duration'].dt # it's already a timedelta
+								else:
+									duration = cal_event['DTEND'].dt - cal_event['DTSTART'].dt
+								yield Event(name=None, start=dt, end=dt + duration)
+					else:
+						if all_day:
+							s, e = _to_all_day(cal_event['DTSTART'].dt)
 							yield Event(name=None, start=s, end=e)
 						else:
-							dt = dt.replace(tzinfo=pytz.UTC)
-							duration = cal_event['DTEND'].dt - cal_event['DTSTART'].dt
-							yield Event(name=None, start=dt, end=dt + duration)
-				else:
-					if all_day:
-						s, e = _to_all_day(cal_event['DTSTART'].dt)
-						yield Event(name=None, start=s, end=e)
-					else:
-						yield Event(name=None, start=cal_event['DTSTART'].dt.astimezone(pytz.UTC), end=cal_event['DTEND'].dt.astimezone(pytz.UTC))
+							yield Event(name=None, start=cal_event['DTSTART'].dt.astimezone(pytz.UTC), end=cal_event['DTEND'].dt.astimezone(pytz.UTC))
+				except Exception as ex:
+					logger.exception("Failed to apply range filter to event %s" % cal_event)
 
 		for event in _build_all_events():
 			if start <= event.start <= end:
