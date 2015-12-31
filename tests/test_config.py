@@ -99,6 +99,17 @@ class TestConfig(object):
 			return 20
 		assert test() == 10
 
+	def test_max_value_decorator_allow_none(self):
+		@max_value(10)
+		def test():
+			return None
+		assert test() is None
+
+		@max_value(10, allow_none=False)
+		def test():
+			return None
+		assert test() == 10
+
 	def test_min_value_decorator(self):
 		@min_value(5)
 		def test():
