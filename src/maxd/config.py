@@ -85,11 +85,12 @@ def time_range(s):
 			yield int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4))
 
 
-class CalendarConfig(collections.namedtuple('CalendarConfig', ('name', 'url', 'username', 'password'))):
+class CalendarConfig(collections.namedtuple('CalendarConfig', ('name', 'url', 'username', 'password', 'filter'))):
 
 	def __new__(cls, **kwargs):
 		kwargs.setdefault('username', None)
 		kwargs.setdefault('password', None)
+		kwargs.setdefault('filter', None)
 		return super(CalendarConfig, cls).__new__(cls, **kwargs)
 
 	@property

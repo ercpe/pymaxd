@@ -14,7 +14,7 @@ try:
 except ImportError:
 	from io import StringIO
 from maxd.config import Configuration
-from maxd.worker import Worker, Schedule, _to_utc_datetime
+from maxd.worker import Worker, Schedule, _to_utc_datetime, Event
 
 if sys.version_info.major == 2 or (sys.version_info.major == 3 and sys.version_info.minor <= 2):
 	from mock import Mock, patch
@@ -44,11 +44,26 @@ class TestWorker(object):
 										datetime.datetime(2015, 12, 28, tzinfo=pytz.UTC),
 										datetime.datetime(2016, 1, 1, tzinfo=pytz.UTC))
 		filtered = list(filtered)
-		print(filtered)
 
 		# weekly event: once (2015-12-29)
 		# daily event: 4 (2015-12-28 till 2015-12-31)
 		assert len(filtered) == 5
+
+	def test_apply_user_filter(self):
+		w = Worker(Configuration('/dev/null'))
+
+		with open('tests/fixtures/calendars/repeating.ics', 'r') as f:
+			events = [o for o in icalendar.Calendar.from_ical(f.read()).walk() if o.name == 'VEVENT']
+
+		filtered = w.apply_range_filter(events,
+										datetime.datetime(2015, 12, 28, tzinfo=pytz.UTC),
+										datetime.datetime(2016, 1, 1, tzinfo=pytz.UTC))
+		filtered = list(filtered)
+
+		filtered = w.apply_user_filter("name == 'Ending repeating event'", filtered)
+		filtered = list(filtered)
+
+		assert len(filtered) == 4
 
 	def test_create_schedule(self):
 		w = Worker(Configuration('/dev/null'))

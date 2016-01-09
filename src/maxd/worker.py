@@ -7,8 +7,7 @@ from dateutil import rrule
 import pytz
 import dateutil.tz
 
-from maxd.fetcher import HTTPCalendarEventFetcher
-from maxd.fetcher import LocalCalendarEventFetcher
+from phylter.parser import Parser
 from pymax.cube import Discovery, Cube
 from pymax.objects import ProgramSchedule
 
@@ -201,7 +200,18 @@ class Worker(object):
 		logger.info("Applying range filter to fetched events from %s" % calendar_config.name)
 		events = self.apply_range_filter(events, start, end)
 
+		if calendar_config.filter is not None:
+			logger.info("Applying user filter \"%s\" to %s events" % (calendar_config.filter, len(events)))
+			events = self.apply_user_filter(calendar_config.filter, events)
+			logger.debug("Event list contains now %s events from calendar %s" % (len(events), calendar_config.name))
+		else:
+			logger.debug("Filter query not set in calendar config")
+
 		return events
+
+	def apply_user_filter(self, query_string, events):
+		q = Parser().parse(query_string)
+		return q.apply(events)
 
 	def apply_range_filter(self, events, start, end):
 		start = (start.astimezone(pytz.UTC) if start.tzinfo else start).replace(hour=0, minute=0, second=0)
@@ -228,28 +238,28 @@ class Worker(object):
 
 						rule = rrule.rrulestr(cal_event.get('RRULE').to_ical().decode('utf-8'), dtstart=event_start_utc.replace(tzinfo=None))
 						if rule._until:
-							# The until field in the RRULE may contain a timezone (even if it's UTC).
+							# The until identifier in the RRULE may contain a timezone (even if it's UTC).
 							# Make sure its UTC and remove the tzinfo
 							rule._until = rule._until.astimezone(pytz.UTC).replace(tzinfo=None)
 
 						for dt in rule.between(start.replace(tzinfo=None), end.replace(tzinfo=None), inc=True):
 							if all_day:
 								s, e = _to_all_day(dt.date())
-								yield Event(name=None, start=s, end=e)
+								yield Event(name=str(cal_event['SUMMARY']), start=s, end=e)
 							else:
 								dt = dt.replace(tzinfo=pytz.UTC)
 								if 'duration' in cal_event:
 									duration = cal_event['duration'].dt # it's already a timedelta
 								else:
 									duration = cal_event['DTEND'].dt - cal_event['DTSTART'].dt
-								yield Event(name=None, start=dt, end=dt + duration)
+								yield Event(name=str(cal_event['SUMMARY']), start=dt, end=dt + duration)
 					else:
 						if all_day:
 							s, e = _to_all_day(cal_event['DTSTART'].dt)
-							yield Event(name=None, start=s, end=e)
+							yield Event(name=str(cal_event['SUMMARY']), start=s, end=e)
 						else:
-							yield Event(name=None, start=cal_event['DTSTART'].dt.astimezone(pytz.UTC), end=cal_event['DTEND'].dt.astimezone(pytz.UTC))
-				except Exception as ex:
+							yield Event(name=str(cal_event['SUMMARY']), start=cal_event['DTSTART'].dt.astimezone(pytz.UTC), end=cal_event['DTEND'].dt.astimezone(pytz.UTC))
+				except:
 					logger.exception("Failed to apply range filter to event %s" % cal_event)
 
 		for event in _build_all_events():
