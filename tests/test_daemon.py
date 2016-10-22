@@ -4,6 +4,6 @@ from maxd.__main__ import Daemon
 
 class TestDaemon(object):
 
-	def test_constructor(self):
-		d = Daemon('tests/fixtures/config/basic.cfg')
+    def test_constructor(self):
+        d = Daemon('tests/fixtures/config/basic.cfg')
 
